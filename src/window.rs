@@ -204,7 +204,6 @@ impl Window {
     ) -> Result<Window> {
         let event_loop = EventsLoop::new();
 
-        Window::platform_window_init();
         let window = WindowBuilder::new()
             .with_title(title)
             .with_visibility(false)
@@ -319,26 +318,6 @@ impl Window {
                 warn!("Failed to set cursor visibility: {}", err);
             }
         }
-    }
-
-    #[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
-    pub fn platform_window_init() {
-        /// Set up env to make XIM work correctly
-        use x11_dl::xlib;
-        use libc::{setlocale, LC_CTYPE};
-        let xlib = xlib::Xlib::open().expect("get xlib");
-        unsafe {
-            // Use empty c string to fallback to LC_CTYPE in environment variables
-            setlocale(LC_CTYPE, b"\0".as_ptr() as *const _);
-            // Use empty c string for implementation dependent behavior,
-            // which might be the XMODIFIERS set in env
-            (xlib.XSetLocaleModifiers)(b"\0".as_ptr() as *const _);
-        }
-    }
-
-    /// TODO: change this directive when adding functions for other platforms
-    #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd")))]
-    pub fn platform_window_init() {
     }
 
     #[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
