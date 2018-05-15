@@ -329,7 +329,9 @@ impl Window {
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd")))]
-    fn platform_builder_ext(_window_builder: WindowBuilder) -> WindowBuilder {}
+    fn platform_builder_ext(window_builder: WindowBuilder) -> WindowBuilder {
+        window_builder
+    }
 
     #[cfg(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
     pub fn set_urgent(&self, is_urgent: bool) {
