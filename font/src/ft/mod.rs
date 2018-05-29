@@ -63,25 +63,25 @@ pub struct FreeTypeRasterizer {
     faces: HashMap<FontKey, Face>,
     library: Library,
     keys: HashMap<PathBuf, FontKey>,
-    device_pixel_ratio: f32,
+    device_pixel_ratio: f64,
 }
 
 #[inline]
-fn to_freetype_26_6(f: f32) -> isize {
-    ((1i32 << 6) as f32 * f) as isize
+fn to_freetype_26_6(f: f64) -> isize {
+    ((1i32 << 6) as f64 * f) as isize
 }
 
 impl ::Rasterize for FreeTypeRasterizer {
     type Err = Error;
 
-    fn new(device_pixel_ratio: f32, _: bool) -> Result<FreeTypeRasterizer, Error> {
+    fn new(device_pixel_ratio: f64, _: bool) -> Result<FreeTypeRasterizer, Error> {
         let library = Library::init()?;
 
         Ok(FreeTypeRasterizer {
             faces: HashMap::new(),
             keys: HashMap::new(),
-            library: library,
-            device_pixel_ratio: device_pixel_ratio,
+            library,
+            device_pixel_ratio,
         })
     }
 
@@ -144,7 +144,7 @@ impl FreeTypeRasterizer {
     /// Load a font face according to `FontDesc`
     fn get_face(&mut self, desc: &FontDesc, size: Size) -> Result<FontKey, Error> {
         // Adjust for DPI
-        let size = Size::new(size.as_f32_pts() * self.device_pixel_ratio * 96. / 72.);
+        let size = Size::new(size.as_f64_pts() * self.device_pixel_ratio * 96. / 72.);
 
         match desc.style {
             Style::Description { slant, weight } => {
@@ -188,7 +188,7 @@ impl FreeTypeRasterizer {
         pattern.add_family(&desc.name);
         pattern.set_weight(weight.into_fontconfig_type());
         pattern.set_slant(slant.into_fontconfig_type());
-        pattern.add_pixelsize(size.as_f32_pts() as _);
+        pattern.add_pixelsize(size.as_f64_pts());
 
         let font = fc::font_match(fc::Config::get_current(), &mut pattern)
             .ok_or_else(|| Error::MissingFont(desc.to_owned()))?;
@@ -210,7 +210,7 @@ impl FreeTypeRasterizer {
         let mut pattern = fc::Pattern::new();
         pattern.add_family(&desc.name);
         pattern.add_style(style);
-        pattern.add_pixelsize(size.as_f32_pts() as _);
+        pattern.add_pixelsize(size.as_f64_pts());
 
         let font = fc::font_match(fc::Config::get_current(), &mut pattern)
             .ok_or_else(|| Error::MissingFont(desc.to_owned()))?;
@@ -338,8 +338,8 @@ impl FreeTypeRasterizer {
         let index = face.ft_face.get_char_index(glyph_key.c as usize);
 
         let size = face.non_scalable.as_ref()
-            .map(|v| v.pixelsize as f32)
-            .unwrap_or_else(|| glyph_key.size.as_f32_pts() * self.device_pixel_ratio * 96. / 72.);
+            .map(|v| v.pixelsize)
+            .unwrap_or_else(|| glyph_key.size.as_f64_pts() * self.device_pixel_ratio * 96. / 72.);
 
         face.ft_face.set_char_size(to_freetype_26_6(size), 0, 0, 0)?;
 

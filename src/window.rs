@@ -16,8 +16,18 @@ use std::fmt::{self, Display};
 use std::ops::Deref;
 
 use gl;
-use glutin::{self, ContextBuilder, ControlFlow, CursorState, Event, EventsLoop,
-             MouseCursor as GlutinMouseCursor, WindowBuilder};
+use glutin::{
+    self,
+    ContextBuilder,
+    ControlFlow,
+    CursorState,
+    Event,
+    EventsLoop,
+    LogicalPosition,
+    LogicalSize,
+    MouseCursor as GlutinMouseCursor,
+    WindowBuilder,
+};
 use glutin::GlContext;
 
 use MouseCursor;
@@ -84,24 +94,23 @@ pub struct Pixels<T>(pub T);
 pub struct Points<T>(pub T);
 
 pub trait ToPoints {
-    fn to_points(&self, scale: f32) -> Size<Points<u32>>;
+    fn to_points(&self, scale: f64) -> Size<Points<u32>>;
 }
 
 impl ToPoints for Size<Points<u32>> {
     #[inline]
-    fn to_points(&self, _scale: f32) -> Size<Points<u32>> {
+    fn to_points(&self, _scale: f64) -> Size<Points<u32>> {
         *self
     }
 }
 
 impl ToPoints for Size<Pixels<u32>> {
-    fn to_points(&self, scale: f32) -> Size<Points<u32>> {
-        let width_pts = (*self.width as f32 / scale) as u32;
-        let height_pts = (*self.height as f32 / scale) as u32;
-
+    fn to_points(&self, scale: f64) -> Size<Points<u32>> {
+        let physical_size = (*self.width, *self.height);
+        let (width_pts, height_pts) = LogicalSize::from_physical(physical_size, scale).into();
         Size {
             width: Points(width_pts),
-            height: Points(height_pts)
+            height: Points(height_pts),
         }
     }
 }
@@ -243,19 +252,21 @@ impl Window {
     /// rasterization depend on DPI and scale factor.
     pub fn device_properties(&self) -> DeviceProperties {
         DeviceProperties {
-            scale_factor: self.window.hidpi_factor(),
+            scale_factor: self.hidpi_factor() as f32,
         }
     }
 
     pub fn inner_size_pixels(&self) -> Option<Size<Pixels<u32>>> {
+        let dpi_factor = self.hidpi_factor();
         self.window
             .get_inner_size()
+            .map(|logical_size| logical_size.to_physical(dpi_factor).into())
             .map(|(w, h)| Size { width: Pixels(w), height: Pixels(h) })
     }
 
     #[inline]
-    pub fn hidpi_factor(&self) -> f32 {
-        self.window.hidpi_factor()
+    pub fn hidpi_factor(&self) -> f64 {
+        self.window.get_hidpi_factor()
     }
 
     #[inline]
@@ -342,7 +353,9 @@ impl Window {
     pub fn set_urgent(&self, _is_urgent: bool) {}
 
     pub fn set_ime_spot(&self, x: i32, y: i32) {
-        self.window.set_ime_spot(x, y);
+        let dpi_factor = self.window.get_hidpi_factor();
+        let logical_spot = LogicalPosition::from_physical((x, y), dpi_factor);
+        self.window.set_ime_spot(logical_spot);
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -422,6 +435,7 @@ pub trait SetInnerSize<T> {
 impl SetInnerSize<Pixels<u32>> for Window {
     fn set_inner_size<T: ToPoints>(&mut self, size: &T) {
         let size = size.to_points(self.hidpi_factor());
-        self.window.set_inner_size(*size.width as _, *size.height as _);
+        let logical_size = LogicalSize::new(*size.width as _, *size.height as _);
+        self.window.set_inner_size(logical_size);
     }
 }

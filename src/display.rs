@@ -17,6 +17,7 @@
 use std::sync::mpsc;
 
 use parking_lot::{MutexGuard};
+use glutin::LogicalSize;
 
 use Rgb;
 use cli;
@@ -93,8 +94,8 @@ pub struct Display {
     renderer: QuadRenderer,
     glyph_cache: GlyphCache,
     render_timer: bool,
-    rx: mpsc::Receiver<(u32, u32)>,
-    tx: mpsc::Sender<(u32, u32)>,
+    rx: mpsc::Receiver<LogicalSize>,
+    tx: mpsc::Sender<LogicalSize>,
     meter: Meter,
     font_size: font::Size,
     size_info: SizeInfo,
@@ -262,7 +263,7 @@ impl Display {
     }
 
     #[inline]
-    pub fn resize_channel(&self) -> mpsc::Sender<(u32, u32)> {
+    pub fn resize_channel(&self) -> mpsc::Sender<LogicalSize> {
         self.tx.clone()
     }
 
@@ -283,8 +284,10 @@ impl Display {
         let mut new_size = None;
 
         // Take most recent resize event, if any
-        while let Ok(sz) = self.rx.try_recv() {
-            new_size = Some(sz);
+        while let Ok(logical_size) = self.rx.try_recv() {
+            let dpi_factor = self.window.hidpi_factor();
+            let physical_size = logical_size.to_physical(dpi_factor).into();
+            new_size = Some(physical_size);
         }
 
         // Font size modification detected

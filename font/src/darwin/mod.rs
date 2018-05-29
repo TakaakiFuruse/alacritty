@@ -80,7 +80,7 @@ impl Descriptor {
 pub struct Rasterizer {
     fonts: HashMap<FontKey, Font>,
     keys: HashMap<(FontDesc, Size), FontKey>,
-    device_pixel_ratio: f32,
+    device_pixel_ratio: f64,
     use_thin_strokes: bool,
 }
 
@@ -127,13 +127,13 @@ impl ::std::fmt::Display for Error {
 impl ::Rasterize for Rasterizer {
     type Err = Error;
 
-    fn new(device_pixel_ratio: f32, use_thin_strokes: bool) -> Result<Rasterizer, Error> {
+    fn new(device_pixel_ratio: f64, use_thin_strokes: bool) -> Result<Rasterizer, Error> {
         info!("device_pixel_ratio: {}", device_pixel_ratio);
         Ok(Rasterizer {
             fonts: HashMap::new(),
             keys: HashMap::new(),
-            device_pixel_ratio: device_pixel_ratio,
-            use_thin_strokes: use_thin_strokes,
+            device_pixel_ratio,
+            use_thin_strokes,
         })
     }
 
@@ -196,7 +196,7 @@ impl Rasterizer {
         for descriptor in descriptors {
             if descriptor.style_name == style {
                 // Found the font we want
-                let scaled_size = size.as_f32_pts() as f64 * self.device_pixel_ratio as f64;
+                let scaled_size = size.as_f64_pts() * self.device_pixel_ratio;
                 let font = descriptor.to_font(scaled_size, true);
                 return Ok(font);
             }
@@ -220,7 +220,7 @@ impl Rasterizer {
             Slant::Normal => false,
             _ => true,
         };
-        let scaled_size = size.as_f32_pts() as f64 * self.device_pixel_ratio as f64;
+        let scaled_size = size.as_f64_pts() * self.device_pixel_ratio;
 
         let descriptors = descriptors_for_family(&desc.name[..]);
         for descriptor in descriptors {
@@ -249,7 +249,7 @@ impl Rasterizer {
         glyph: &GlyphKey,
         font: &Font,
     ) -> Option<Result<RasterizedGlyph, Error>> {
-        let scaled_size = self.device_pixel_ratio * glyph.size.as_f32_pts();
+        let scaled_size = self.device_pixel_ratio * glyph.size.as_f64_pts();
         font.get_glyph(glyph.c, scaled_size as _, self.use_thin_strokes)
             .map(|r| Some(Ok(r)))
             .unwrap_or_else(|e| match e {

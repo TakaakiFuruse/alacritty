@@ -172,18 +172,18 @@ pub struct Size(i16);
 impl Size {
     /// Scale factor between font "Size" type and point size
     #[inline]
-    pub fn factor() -> f32 {
+    pub fn factor() -> f64 {
         2.0
     }
 
-    /// Create a new `Size` from a f32 size in points
-    pub fn new(size: f32) -> Size {
+    /// Create a new `Size` from a f64 size in points
+    pub fn new(size: f64) -> Size {
         Size((size * Size::factor()) as i16)
     }
 
     /// Get the f32 size in points
-    pub fn as_f32_pts(self) -> f32 {
-        self.0 as f32 / Size::factor()
+    pub fn as_f64_pts(self) -> f64 {
+        self.0 as f64 / Size::factor()
     }
 }
 
@@ -321,7 +321,7 @@ pub trait Rasterize {
     type Err: ::std::error::Error + Send + Sync + 'static;
 
     /// Create a new Rasterize
-    fn new(device_pixel_ratio: f32, use_thin_strokes: bool) -> Result<Self, Self::Err>
+    fn new(device_pixel_ratio: f64, use_thin_strokes: bool) -> Result<Self, Self::Err>
         where Self: Sized;
 
     /// Get `Metrics` for the given `FontKey`

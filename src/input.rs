@@ -25,7 +25,7 @@ use std::time::Instant;
 use std::os::unix::process::CommandExt;
 
 use copypasta::{Clipboard, Load, Buffer};
-use glutin::{ElementState, VirtualKeyCode, MouseButton, TouchPhase, MouseScrollDelta, ModifiersState};
+use glutin::{ElementState, VirtualKeyCode, LogicalPosition, MouseButton, TouchPhase, MouseScrollDelta, ModifiersState};
 
 use config;
 use event::{ClickState, Mouse};
@@ -447,7 +447,7 @@ impl<'a, A: ActionContext + 'a> Processor<'a, A> {
 
                 self.ctx.mouse_mut().lines_scrolled = to_scroll % 1.0;
             },
-            MouseScrollDelta::PixelDelta(_x, y) => {
+            MouseScrollDelta::PixelDelta(LogicalPosition { y, .. }) => {
                 match phase {
                     TouchPhase::Started => {
                         // Reset offset to zero

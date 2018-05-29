@@ -7,7 +7,7 @@ use std::time::{Instant};
 
 use serde_json as json;
 use parking_lot::MutexGuard;
-use glutin::{self, ModifiersState, Event, ElementState};
+use glutin::{self, ElementState, Event, LogicalPosition, LogicalSize, ModifiersState};
 use copypasta::{Clipboard, Load, Store};
 
 use config::{self, Config};
@@ -189,7 +189,7 @@ pub struct Processor<N> {
     wait_for_event: bool,
     notifier: N,
     mouse: Mouse,
-    resize_tx: mpsc::Sender<(u32, u32)>,
+    resize_tx: mpsc::Sender<LogicalSize>,
     ref_test: bool,
     size_info: SizeInfo,
     pub selection: Option<Selection>,
@@ -218,7 +218,7 @@ impl<N: Notify> Processor<N> {
     /// pty.
     pub fn new(
         notifier: N,
-        resize_tx: mpsc::Sender<(u32, u32)>,
+        resize_tx: mpsc::Sender<LogicalSize>,
         options: &Options,
         config: &Config,
         ref_test: bool,
@@ -252,7 +252,7 @@ impl<N: Notify> Processor<N> {
         processor: &mut input::Processor<'a, ActionContext<'a, N>>,
         event: Event,
         ref_test: bool,
-        resize_tx: &mpsc::Sender<(u32, u32)>,
+        resize_tx: &mpsc::Sender<LogicalSize>,
         hide_cursor: &mut bool,
         window_is_focused: &mut bool,
     ) {
@@ -285,8 +285,8 @@ impl<N: Notify> Processor<N> {
                         // FIXME should do a more graceful shutdown
                         ::std::process::exit(0);
                     },
-                    Resized(w, h) => {
-                        resize_tx.send((w, h)).expect("send new size");
+                    Resized(logical_size) => {
+                        resize_tx.send(logical_size).expect("send new size");
                         processor.ctx.terminal.dirty = true;
                     },
                     KeyboardInput { input, .. } => {
@@ -305,7 +305,7 @@ impl<N: Notify> Processor<N> {
                         processor.mouse_input(state, button, modifiers);
                         processor.ctx.terminal.dirty = true;
                     },
-                    CursorMoved { position: (x, y), modifiers, .. } => {
+                    CursorMoved { position: LogicalPosition { x, y }, modifiers, .. } => {
                         let x = x as i32;
                         let y = y as i32;
                         let x = limit(x, 0, processor.ctx.size_info.width as i32);
